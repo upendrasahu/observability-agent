@@ -33,6 +33,8 @@ flowchart TD
     C -->|Responses| B
     B -->|Store| D[Knowledge Base]
     B -->|Notify| E[Notification Channels]
+    G[UI Backend] -->|Fetch Data| F1
+    H[UI] -->|API Requests| G
 
 subgraph "Specialized Agents"
     C1[Metric Agent]
@@ -57,6 +59,11 @@ end
 
 subgraph "Communication Layer"
     F1[NATS with JetStream]
+end
+
+subgraph "User Interface"
+    G[UI Backend]
+    H[UI]
 end
 
 B <-->|Persistent Messaging| F1
@@ -92,6 +99,33 @@ flowchart TB
 ```
 
 ### 2. Specialized Agents
+
+- **Metric Agent**: Analyzes time-series metrics for anomalies
+- **Log Agent**: Processes and analyzes log patterns
+- **Deployment Agent**: Monitors deployment status and issues
+- **Tracing Agent**: Analyzes distributed traces
+- **Root Cause Agent**: Identifies incident root causes
+- **Runbook Agent**: Manages and executes runbooks
+- **Notification Agent**: Handles alert notifications
+- **Postmortem Agent**: Generates incident documentation
+
+### 3. User Interface
+- **UI Backend**: RESTful API service that provides data to the UI
+- **UI**: Web interface for visualizing and interacting with the system
+
+### 4. Knowledge Base (Qdrant)
+- Vector storage for incident data
+- Semantic search capabilities
+- Historical incident tracking
+- Runbook and postmortem storage
+
+### 5. Communication Layer (NATS)
+- Message streaming with JetStream
+- Persistent, durable message delivery
+- Advanced subject-based routing
+- Queue groups for load balancing
+- Configurable message retention
+- Acknowledgment-based flow control
 
 Each agent specializes in a specific domain of observability and operates using multi-agent teams for comprehensive analysis:
 
@@ -523,6 +557,11 @@ The Orchestrator stores incident data, analyses, and learnings in the Qdrant vec
 Orchestrator -> NATS (notification_requests) -> Notification Agent -> Channels
 ```
 
+### 6. UI Data Flow
+```
+UI -> UI Backend -> NATS (data requests) -> UI Backend -> UI
+
+
 The Orchestrator sends notification requests to the Notification Agent, which then delivers alerts to appropriate channels (Slack, PagerDuty, email, etc.).
 
 ```mermaid
@@ -745,11 +784,15 @@ graph TD
     A --> C[Specialized Agents]
     A --> D[Qdrant]
     A --> E[NATS]
-    
+    A --> F[UI Backend]
+    A --> G[UI]
+
     B -->|Uses| E
     B -->|Uses| D
     C -->|Uses| E
     C -->|Uses| D
+    F -->|Uses| E
+    G -->|Uses| F
 ```
 
 ### NATS Streams Configuration
@@ -763,7 +806,7 @@ streams:
     retention: limits
     max_age: 24h
   - name: AGENT_TASKS
-    subjects: ["metric_agent", "log_agent", "deployment_agent", "tracing_agent", 
+    subjects: ["metric_agent", "log_agent", "deployment_agent", "tracing_agent",
                "root_cause_agent", "notification_agent", "postmortem_agent", "runbook_agent"]
     retention: limits
     max_msgs: 10000
